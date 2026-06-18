@@ -12,16 +12,17 @@ services:
       - PORT=3001
       - JWT_SECRET=${JWT_SECRET:-change_me_in_production}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
+      # Keep the SQLite DB and uploads together on one persistent volume.
+      - DATA_DIR=/data
     volumes:
-      # Persist uploaded files across container restarts
-      - uploads_data:/app/server/uploads
+      - app_data:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/auth"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
 
 volumes:
-  uploads_data:
+  app_data:

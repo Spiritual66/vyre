@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
 const auth = require('../middleware/auth');
 const db = require('../db');
+const { UPLOADS_DIR } = require('../paths');
 
 function getAdminSetting(key, fallback) {
   try {
@@ -37,7 +38,7 @@ function mediaFileFilter(req, file, cb) {
 }
 
 const storage = multer.diskStorage({
-  destination: path.join(__dirname, '../uploads/media'),
+  destination: path.join(UPLOADS_DIR, 'media'),
   // Never derive the stored path from client-supplied originalname (path-traversal risk).
   // The original name is preserved separately in messages.file_name for display.
   filename: (req, file, cb) => {

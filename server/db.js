@@ -1,7 +1,12 @@
 const Database = require('better-sqlite3');
+const fs = require('fs');
 const path = require('path');
+const { DB_PATH } = require('./paths');
 
-const db = new Database(path.join(__dirname, 'messaging.db'));
+// Ensure the data directory exists (it may be a freshly-mounted disk in prod).
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+
+const db = new Database(DB_PATH);
 
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');

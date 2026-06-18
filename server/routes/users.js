@@ -4,11 +4,12 @@ const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const auth = require('../middleware/auth');
 const db = require('../db');
+const { UPLOADS_DIR } = require('../paths');
 
 const router = express.Router();
 
 const storage = multer.diskStorage({
-  destination: path.join(__dirname, '../uploads/avatars'),
+  destination: path.join(UPLOADS_DIR, 'avatars'),
   filename: (req, file, cb) => cb(null, `${req.user.id}-${Date.now()}${path.extname(file.originalname)}`),
 });
 const upload = multer({

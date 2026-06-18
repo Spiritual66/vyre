@@ -46,6 +46,12 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : DEV_ORIGINS;
 
+// Render injects the public URL — auto-allow it so the same-origin client
+// and Socket.io handshake aren't rejected by CORS on a fresh deploy.
+if (process.env.RENDER_EXTERNAL_URL && !allowedOrigins.includes(process.env.RENDER_EXTERNAL_URL)) {
+  allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
+}
+
 const corsOptions = {
   origin(origin, cb) {
     // Allow requests with no origin (mobile apps, Electron file://, Postman)
@@ -59,7 +65,8 @@ const io = new Server(server, { cors: corsOptions });
 
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+const { UPLOADS_DIR } = require('./paths');
+app.use('/uploads', express.static(UPLOADS_DIR, {
   setHeaders: (res) => {
     // User-uploaded content: prevent MIME sniffing into an executable type.
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -67,6 +74,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 }));
 
 require('./uploads-init');
+
+// Health check — used by Render / Docker to verify the service is up.
+app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 
 // Maintenance mode — checked before all non-admin routes
 const db = require('./db');

@@ -4,9 +4,10 @@ const multer = require('multer');
 const path = require('path');
 const auth = require('../middleware/auth');
 const db = require('../db');
+const { UPLOADS_DIR } = require('../paths');
 
 const storage = multer.diskStorage({
-  destination: path.join(__dirname, '../uploads/statuses'),
+  destination: path.join(UPLOADS_DIR, 'statuses'),
   filename: (req, file, cb) => cb(null, `status-${Date.now()}${path.extname(file.originalname)}`),
 });
 const upload = multer({ storage, limits: { fileSize: 16 * 1024 * 1024 } });

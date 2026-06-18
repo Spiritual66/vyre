@@ -1,0 +1,29 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploy: push to GitHub, then on render.com choose "New → Blueprint" and pick
+# this repo. Render builds server/Dockerfile, attaches a persistent disk for the
+# SQLite DB + uploads, and serves both API and the built client on one HTTPS URL.
+services:
+  - type: web
+    name: vyre
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    plan: starter            # "free" also works (spins down when idle); starter stays warm
+    region: oregon
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: vyre-data
+      mountPath: /data       # DATA_DIR points here → messaging.db + uploads persist
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /data
+      - key: JWT_SECRET
+        generateValue: true  # Render generates a strong secret automatically
+      - key: ALLOWED_ORIGINS
+        sync: false          # optional; RENDER_EXTERNAL_URL is auto-allowed in code
+      - key: GEMINI_API_KEY
+        sync: false          # set your own key in the dashboard (AI writing tools)

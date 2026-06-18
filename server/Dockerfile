@@ -8,7 +8,9 @@ COPY client/ .
 RUN npm run build
 
 # --- Production image ---
-FROM node:20-alpine
+# Debian slim (glibc) so better-sqlite3 uses its prebuilt binary instead of
+# needing a source build (which musl/alpine would require).
+FROM node:20-bookworm-slim
 WORKDIR /app/server
 
 # Install server deps
@@ -29,6 +31,6 @@ ENV NODE_ENV=production
 ENV PORT=3001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD wget -qO- http://localhost:3001/api/auth || exit 1
+  CMD node -e "fetch('http://localhost:'+(process.env.PORT||3001)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "index.js"]
