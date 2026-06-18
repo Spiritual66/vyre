@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Variables (light / dark) ──────────────────────── */
+:root {
+  --bg: #f0f2f5;
+  --panel: #ffffff;
+  --sidebar-bg: #ffffff;
+  --chat-bg: #efeae2;
+  --chat-pattern: rgba(208,201,192,0.15);
+  --msg-in: #ffffff;
+  --header-bg: #f0f2f5;
+  --header: #f0f2f5;
+  --input-bg: #f0f2f5;
+  --input-field: #ffffff;
+  --text-primary: #111b21;
+  --text-secondary: #667781;
+  --text-tertiary: #8696a0;
+  --separator: #e9edef;
+  --hover: #f5f6f6;
+  --active-chat: #f0f2f5;
+  --icon: #54656f;
+  --blue-check: #53bdeb;
+  --shadow: rgba(0,0,0,0.08);
+  --reaction-bg: #ffffff;
+  --reaction-border: #e9edef;
+  --modal-overlay: rgba(0,0,0,0.45);
+  /* ── Accent color system (overridable at runtime) ─── */
+  --accent: #00a884;
+  --accent-dark: #008069;
+  --accent-light: #25d366;
+  --unread: var(--accent-light);
+  /* Auto-derived from accent — updates instantly when accent changes */
+  --msg-out: color-mix(in srgb, var(--accent) 22%, white);
+}
+
+.dark {
+  --bg: #111b21;
+  --panel: #1f2c34;
+  --sidebar-bg: #1f2c34;
+  --chat-bg: #0b141a;
+  --chat-pattern: rgba(255,255,255,0.03);
+  --msg-in: #1f2c34;
+  --header-bg: #1f2c34;
+  --header: #1f2c34;
+  --input-bg: #1f2c34;
+  --input-field: #2a3942;
+  --text-primary: #e9edef;
+  --text-secondary: #8696a0;
+  --text-tertiary: #667781;
+  --separator: #2a3942;
+  --hover: #2a3942;
+  --active-chat: #2a3942;
+  --icon: #8696a0;
+  --shadow: rgba(0,0,0,0.3);
+  --reaction-bg: #1f2c34;
+  --reaction-border: #2a3942;
+  --modal-overlay: rgba(0,0,0,0.65);
+  --unread: var(--accent);
+  --msg-out: color-mix(in srgb, var(--accent) 50%, #0b141a);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Helvetica Neue, Arial, sans-serif;
+  background: var(--bg);
+  overflow: hidden;
+  height: 100vh;
+  color: var(--text-primary);
+  transition: background 0.2s, color 0.2s;
+}
+
+#root { height: 100vh; display: flex; }
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--separator); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+/* ── Chat background pattern ────────────────────────────── */
+.chat-bg {
+  background-color: var(--chat-bg-override, var(--chat-bg));
+  background-image: var(--chat-bg-image, var(--chat-pattern-override, url("data:image/svg+xml,%3Csvg width='52' height='52' viewBox='0 0 52 52' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h26v26H0V0zm26 26h26v26H26V26z' fill='%23ffffff' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E")));
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.dark .chat-bg {
+  background-image: var(--chat-bg-image, var(--chat-pattern-override, url("data:image/svg+xml,%3Csvg width='52' height='52' viewBox='0 0 52 52' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h26v26H0V0zm26 26h26v26H26V26z' fill='%23ffffff' fill-opacity='0.015' fill-rule='evenodd'/%3E%3C/svg%3E")));
+}
+
+/* ── Message bubble tails ───────────────────────────────── */
+.msg-out::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 0;
+  border-top: 8px solid var(--msg-out);
+  border-right: 8px solid transparent;
+}
+.msg-in::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 0;
+  border-top: 8px solid var(--msg-in);
+  border-left: 8px solid transparent;
+}
+
+/* ── Typing animation ───────────────────────────────────── */
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.typing-dot { animation: typingDot 1.2s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ── Slide-in panel ─────────────────────────────────────── */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+.slide-in-right { animation: slideInRight 0.25s ease; }
+.slide-in-left  { animation: slideInLeft  0.25s ease; }
+
+/* ── Fade in ────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.fade-in { animation: fadeIn 0.15s ease; }
+
+/* ── Status ring ─────────────────────────────────────────── */
+@keyframes statusPulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--accent-light); }
+  50%       { box-shadow: 0 0 0 3px var(--accent-light); }
+}
+.status-ring { animation: statusPulse 2s ease infinite; }
+
+/* ── Voice recording pulse ──────────────────────────────── */
+@keyframes recordPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.15); opacity: 0.8; }
+}
+.record-pulse { animation: recordPulse 1s ease infinite; }
+
+/* ── Reaction popup ─────────────────────────────────────── */
+@keyframes reactionPop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.reaction-pop { animation: reactionPop 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* ── Avatar ─────────────────────────────────────────────── */
+.avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* ── Waveform bars ──────────────────────────────────────── */
+@keyframes waveBar {
+  0%, 100% { height: 4px; }
+  50% { height: 14px; }
+}
+.wave-bar { animation: waveBar 0.8s ease infinite; }
+.wave-bar:nth-child(2) { animation-delay: 0.1s; }
+.wave-bar:nth-child(3) { animation-delay: 0.2s; }
+.wave-bar:nth-child(4) { animation-delay: 0.15s; }
+.wave-bar:nth-child(5) { animation-delay: 0.05s; }
+
+/* ── Audio player waveform ──────────────────────────────── */
+@keyframes audioBarPulse {
+  0%, 100% { opacity: 0.6; transform: scaleY(0.85); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+.audio-bar-pulse {
+  animation: audioBarPulse 0.55s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* ── Skeleton loading ───────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--separator) 25%, var(--hover) 50%, var(--separator) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 4px;
+}
+
+input:focus, textarea:focus { outline: none; }
+mark { background: #ffd6a0; border-radius: 2px; }
+.dark mark { background: #5c4a00; color: #ffd6a0; }
+
+/* ── Send button pop animation ──────────────────────────── */
+@keyframes sendBtnPop {
+  from { transform: scale(0.6) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1)   rotate(0deg);  opacity: 1; }
+}
+.send-btn-pop { animation: sendBtnPop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* ── Attach menu fade-up ────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+.fade-up { animation: fadeUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }

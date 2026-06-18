@@ -1,0 +1,68 @@
+{
+  "name": "vyre-desktop",
+  "version": "1.0.0",
+  "description": "VYRE desktop app (Electron wrapper)",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env ELECTRON_DEV=1 electron .",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
+    "dist:all": "electron-builder --win --mac --linux"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.vyre.app",
+    "productName": "VYRE",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "../dist-electron",
+      "buildResources": "../client/public"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs"
+    ],
+    "extraResources": [
+      {
+        "from": "../server",
+        "to": "server",
+        "filter": ["**/*", "!node_modules/.cache/**", "!*.log"]
+      },
+      {
+        "from": "../server/node_modules",
+        "to": "server/node_modules"
+      },
+      {
+        "from": "../client/dist",
+        "to": "client/dist"
+      }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "../client/public/icon-512.png"
+    },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "icon": "../client/public/icon-512.png",
+      "category": "public.app-category.social-networking",
+      "hardenedRuntime": true
+    },
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "icon": "../client/public/icon-512.png",
+      "category": "Network"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "../client/public/icon-512.png"
+    }
+  }
+}

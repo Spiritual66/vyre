@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="vg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2EDF72"/>
+      <stop offset="100%" stop-color="#0F9E4A"/>
+    </linearGradient>
+    <linearGradient id="vg-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#25d366"/>
+      <stop offset="100%" stop-color="#128C7E"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect width="100" height="100" rx="24" fill="url(#vg)"/>
+  <!-- Left person dot -->
+  <circle cx="23" cy="36" r="9.5" fill="white"/>
+  <!-- Right person dot -->
+  <circle cx="77" cy="36" r="9.5" fill="white"/>
+  <!-- V connecting stroke -->
+  <path d="M23 36 L50 70 L77 36"
+        stroke="white"
+        stroke-width="13"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"/>
+</svg>

@@ -1,0 +1,50 @@
+# ── Secrets / environment ───────────────────────────────
+# Never commit real secrets. Keep .env.example (a template) tracked.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# ── TLS dev certificates (contain a private key) ────────
+certs/
+*.pem
+
+# ── Dependencies ────────────────────────────────────────
+node_modules/
+
+# ── Databases (SQLite) ──────────────────────────────────
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── User uploads (runtime data) ─────────────────────────
+server/uploads/
+!server/uploads/.gitkeep
+
+# ── Build output ────────────────────────────────────────
+client/dist/
+dist/
+build/
+*.tsbuildinfo
+
+# ── Process / runtime artifacts ─────────────────────────
+*.pid
+*.log
+server/server-err.log
+
+# ── Native / mobile build dirs ──────────────────────────
+client/android/
+client/ios/
+electron/dist/
+
+# ── Tooling / editor (machine-specific) ─────────────────
+.claude/
+
+# ── OS / editor cruft ───────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
