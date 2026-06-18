@@ -16,6 +16,10 @@ const httpsConfig = httpsEnabled
   : undefined
 
 export default defineConfig({
+  // Base path for asset URLs. Defaults to '/' (custom domain or local).
+  // GitHub Pages project sites (https://<user>.github.io/vyre/) need '/vyre/'
+  // — the Pages workflow sets VITE_BASE accordingly.
+  base: process.env.VITE_BASE || '/',
   plugins: [
     react(),
     VitePWA({
