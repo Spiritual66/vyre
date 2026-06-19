@@ -8,20 +8,24 @@ COPY client/ .
 RUN npm run build
 
 # --- Production image ---
-# Debian slim (glibc) so better-sqlite3 uses its prebuilt binary instead of
-# needing a source build (which musl/alpine would require).
 FROM node:20-bookworm-slim
 WORKDIR /app/server
 
+# Build tools so better-sqlite3's native addon can compile if no prebuilt
+# binary matches the platform (the usual cause of a failed Docker build here).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install server deps
 COPY server/package*.json ./
-RUN npm ci --prefer-offline --omit=dev
+RUN npm ci --omit=dev
 
 # Copy server source
 COPY server/ .
 
-# Copy built frontend into a location the server can serve
-COPY --from=frontend-builder /app/client/dist ../client/dist
+# Copy built frontend into a location the server can serve (absolute dest)
+COPY --from=frontend-builder /app/client/dist /app/client/dist
 
 # Uploads volume mount point
 RUN mkdir -p uploads
