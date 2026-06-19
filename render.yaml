@@ -1,29 +1,37 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
-# Deploy: push to GitHub, then on render.com choose "New → Blueprint" and pick
-# this repo. Render builds server/Dockerfile, attaches a persistent disk for the
-# SQLite DB + uploads, and serves both API and the built client on one HTTPS URL.
+# Deploy: on render.com choose "New → Blueprint", pick this repo, Apply.
+# Render builds server/Dockerfile and serves the API + built client on ONE
+# HTTPS URL (reachable from any device, independent of your PC).
+#
+# This is the FREE-tier config (no credit card). Trade-offs: the service sleeps
+# after ~15 min idle (first request then takes ~50s), and there's no persistent
+# disk, so accounts/messages reset on restart/redeploy.
+#
+# To keep data + stay always-on, change `plan: free` → `plan: starter` (~$7/mo)
+# and uncomment the `disk:` block and the DATA_DIR env var below.
 services:
   - type: web
     name: vyre
     runtime: docker
     dockerfilePath: ./server/Dockerfile
     dockerContext: .
-    plan: starter            # "free" also works (spins down when idle); starter stays warm
+    plan: free
     region: oregon
     healthCheckPath: /health
     autoDeploy: true
-    disk:
-      name: vyre-data
-      mountPath: /data       # DATA_DIR points here → messaging.db + uploads persist
-      sizeGB: 1
+    # --- For persistence (paid Starter plan), uncomment: ---
+    # disk:
+    #   name: vyre-data
+    #   mountPath: /data
+    #   sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DATA_DIR
-        value: /data
+      # - key: DATA_DIR          # uncomment with the disk above for persistence
+      #   value: /data
       - key: JWT_SECRET
-        generateValue: true  # Render generates a strong secret automatically
+        generateValue: true      # Render generates a strong secret automatically
       - key: ALLOWED_ORIGINS
-        sync: false          # optional; RENDER_EXTERNAL_URL is auto-allowed in code
+        sync: false              # optional; RENDER_EXTERNAL_URL is auto-allowed in code
       - key: GEMINI_API_KEY
-        sync: false          # set your own key in the dashboard (AI writing tools)
+        sync: false              # optional; for the AI writing tools
