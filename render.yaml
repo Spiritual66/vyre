@@ -13,7 +13,7 @@ services:
   - type: web
     name: vyre
     runtime: docker
-    dockerfilePath: ./server/Dockerfile
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
     region: oregon

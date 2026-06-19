@@ -1,10 +1,12 @@
-# Multi-stage: build frontend, then serve everything from the backend
+# Multi-stage: build frontend, then serve everything from the backend.
+# Lives at the repo root (build context = repo root) so Render's default
+# Dockerfile path finds it. COPY paths are relative to the repo root.
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm ci --prefer-offline
 COPY client/ .
-# Build with production API URL pointing to the same origin (served by backend)
+# Built same-origin (no VITE_API_URL) — the backend serves these files.
 RUN npm run build
 
 # --- Production image ---
@@ -12,7 +14,7 @@ FROM node:20-bookworm-slim
 WORKDIR /app/server
 
 # Build tools so better-sqlite3's native addon can compile if no prebuilt
-# binary matches the platform (the usual cause of a failed Docker build here).
+# binary matches the platform.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
@@ -24,10 +26,10 @@ RUN npm ci --omit=dev
 # Copy server source
 COPY server/ .
 
-# Copy built frontend into a location the server can serve (absolute dest)
+# Copy built frontend into a location the server can serve
 COPY --from=frontend-builder /app/client/dist /app/client/dist
 
-# Uploads volume mount point
+# Uploads dir (created at runtime too, but ensure it exists)
 RUN mkdir -p uploads
 
 EXPOSE 3001
