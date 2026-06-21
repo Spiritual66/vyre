@@ -33,6 +33,11 @@ const { Server } = require('socket.io');
 
 const app = express();
 
+// Trust the first proxy hop (Render/Heroku/etc. load balancer) so req.ip is the
+// real client IP from X-Forwarded-For. Without this, rate limiting keys every
+// request to the proxy's IP — i.e. one shared global limit for all users.
+app.set('trust proxy', 1);
+
 // Opt-in HTTPS: set SSL_KEY and SSL_CERT (paths to PEM files) to serve over TLS.
 // Needed so camera/mic (getUserMedia) work when the app is opened from another
 // device on the LAN — browsers only expose media APIs in a secure context.

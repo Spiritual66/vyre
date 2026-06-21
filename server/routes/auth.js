@@ -14,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'vyre_dev_secret_change_in_producti
 // Brute-force protection: max 10 attempts per IP per 15 minutes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many attempts. Please try again in 15 minutes.' },
