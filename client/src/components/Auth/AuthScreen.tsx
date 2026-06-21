@@ -6,7 +6,13 @@ export default function AuthScreen() {
   const [form, setForm] = useState({ username: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [twoFA, setTwoFA] = useState(false);   // login: awaiting 2FA code
+  const [code, setCode] = useState('');
   const { login, register } = useAuth();
+
+  const switchMode = (m: 'login' | 'register') => {
+    setMode(m); setError(''); setTwoFA(false); setCode('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,7 +20,8 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       if (mode === 'login') {
-        await login(form.email, form.password);
+        const res = await login(form.email, form.password, twoFA ? code : undefined);
+        if (res.twoFactorRequired) { setTwoFA(true); setLoading(false); return; }
       } else {
         if (!form.username.trim()) { setError('Username required'); setLoading(false); return; }
         await register(form.username, form.email, form.password);
@@ -51,7 +58,7 @@ export default function AuthScreen() {
           {/* Mode toggle */}
           <div className="flex mb-6 rounded-lg p-1" style={{ background: 'var(--hover)' }}>
             {(['login', 'register'] as const).map(m => (
-              <button key={m} onClick={() => { setMode(m); setError(''); }}
+              <button key={m} onClick={() => switchMode(m)}
                 className="flex-1 py-2 rounded-md text-sm font-medium transition-all"
                 style={{
                   background: mode === m ? 'var(--panel)' : 'transparent',
@@ -64,9 +71,26 @@ export default function AuthScreen() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'register' && field('Username', 'text', 'Your name', 'username')}
-            {field(mode === 'login' ? 'Email or username' : 'Email', mode === 'login' ? 'text' : 'email', mode === 'login' ? 'email or username' : 'your@email.com', 'email')}
-            {field('Password', 'password', '••••••••', 'password')}
+            {mode === 'login' && twoFA ? (
+              <div>
+                <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                  Two-factor authentication is on. Enter the 6-digit code from your authenticator app.
+                </p>
+                <input inputMode="numeric" pattern="[0-9]*" maxLength={6} autoFocus required
+                  placeholder="123456" value={code}
+                  onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="w-full rounded-lg px-4 py-3 text-center text-lg tracking-[0.4em] outline-none border"
+                  style={{ color: 'var(--text-primary)', background: 'var(--input-bg)', borderColor: 'var(--separator)' }} />
+                <button type="button" onClick={() => { setTwoFA(false); setCode(''); setError(''); }}
+                  className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>← Back to login</button>
+              </div>
+            ) : (
+              <>
+                {mode === 'register' && field('Username', 'text', 'Your name', 'username')}
+                {field(mode === 'login' ? 'Email or username' : 'Email', mode === 'login' ? 'text' : 'email', mode === 'login' ? 'email or username' : 'your@email.com', 'email')}
+                {field('Password', 'password', '••••••••', 'password')}
+              </>
+            )}
 
             {error && (
               <div className="border rounded-lg px-4 py-3 text-sm text-red-500"
@@ -83,9 +107,9 @@ export default function AuthScreen() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
-                  {mode === 'login' ? 'Logging in...' : 'Creating account...'}
+                  {mode === 'login' ? (twoFA ? 'Verifying...' : 'Logging in...') : 'Creating account...'}
                 </span>
-              ) : mode === 'login' ? 'Log in' : 'Create account'}
+              ) : mode === 'login' ? (twoFA ? 'Verify code' : 'Log in') : 'Create account'}
             </button>
           </form>
         </div>

@@ -210,6 +210,8 @@ const migrations = [
   { table: 'user_settings', column: 'disappearing_messages', def: 'INTEGER DEFAULT 0' },
   { table: 'users', column: 'is_banned', def: 'INTEGER DEFAULT 0' },
   { table: 'users', column: 'admin_note', def: 'TEXT DEFAULT NULL' },
+  { table: 'users', column: 'totp_secret', def: 'TEXT DEFAULT NULL' },
+  { table: 'users', column: 'totp_enabled', def: 'INTEGER DEFAULT 0' },
 ];
 
 for (const { table, column, def } of migrations) {

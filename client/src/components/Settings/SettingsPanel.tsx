@@ -121,6 +121,104 @@ function SectionDivider({ label }: { label?: string }) {
   );
 }
 
+// ─── Two-factor authentication (TOTP) ─────────────────────────────────────────
+function TwoFactorSection({ onBack }: { onBack: () => void }) {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [setup, setSetup] = useState<{ qr: string; secret: string } | null>(null);
+  const [code, setCode] = useState('');
+  const [pw, setPw] = useState('');
+  const [err, setErr] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.get('/users/me/2fa').then(({ data }) => setEnabled(!!data.enabled)).catch(() => setEnabled(false));
+  }, []);
+
+  const run = async (fn: () => Promise<void>) => {
+    setErr(''); setMsg(''); setBusy(true);
+    try { await fn(); } catch (e: any) { setErr(e.response?.data?.error || 'Something went wrong'); }
+    finally { setBusy(false); }
+  };
+  const startSetup = () => run(async () => {
+    const { data } = await api.post('/users/me/2fa/setup');
+    setSetup({ qr: data.qr, secret: data.secret });
+  });
+  const enable = () => run(async () => {
+    await api.post('/users/me/2fa/enable', { code });
+    setEnabled(true); setSetup(null); setCode(''); setMsg('Two-factor authentication is now ON.');
+  });
+  const disable = () => run(async () => {
+    await api.post('/users/me/2fa/disable', { password: pw });
+    setEnabled(false); setPw(''); setMsg('Two-factor authentication turned off.');
+  });
+
+  return (
+    <div className="flex flex-col h-full">
+      <SectionHeader title="Two-step verification" onBack={onBack} />
+      <div className="p-5 space-y-4">
+        <div className="flex flex-col items-center gap-2 py-2">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,168,132,0.1)' }}>
+            <svg viewBox="0 0 24 24" className="w-8 h-8" style={{ fill: 'var(--accent)' }}><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>
+            Require a one-time code from an authenticator app (Google Authenticator, Authy, 1Password…) each time you log in.
+          </p>
+        </div>
+
+        {msg && <div className="rounded-lg px-4 py-2.5 text-sm text-green-500" style={{ background: 'rgba(34,197,94,0.08)' }}>{msg}</div>}
+        {err && <div className="rounded-lg px-4 py-2.5 text-sm text-red-500" style={{ background: 'rgba(239,68,68,0.08)' }}>{err}</div>}
+
+        {enabled === null && <p className="text-sm text-center" style={{ color: 'var(--text-tertiary)' }}>Loading…</p>}
+
+        {enabled === false && !setup && (
+          <button onClick={startSetup} disabled={busy}
+            className="w-full bg-wa-green hover:bg-wa-green-dark text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-60">
+            {busy ? 'Please wait…' : 'Set up two-factor authentication'}
+          </button>
+        )}
+
+        {enabled === false && setup && (
+          <div className="space-y-3">
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>1. Scan this QR code with your authenticator app:</p>
+            <img src={setup.qr} alt="2FA QR code" className="w-44 h-44 mx-auto rounded-lg bg-white p-2" />
+            <p className="text-xs text-center break-all" style={{ color: 'var(--text-tertiary)' }}>
+              Or enter this key manually:<br /><span className="font-mono">{setup.secret}</span>
+            </p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>2. Enter the 6-digit code it shows:</p>
+            <input inputMode="numeric" maxLength={6} placeholder="123456" value={code}
+              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="w-full rounded-lg px-4 py-3 text-center text-lg tracking-[0.4em] outline-none border"
+              style={{ color: 'var(--text-primary)', background: 'var(--input-bg)', borderColor: 'var(--separator)' }} />
+            <button onClick={enable} disabled={busy || code.length !== 6}
+              className="w-full bg-wa-green hover:bg-wa-green-dark text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-60">
+              {busy ? 'Verifying…' : 'Verify & enable'}
+            </button>
+          </div>
+        )}
+
+        {enabled === true && (
+          <div className="space-y-3">
+            <div className="rounded-lg px-4 py-3 text-sm flex items-center gap-2" style={{ background: 'var(--hover)', color: 'var(--text-primary)' }}>
+              <span className="text-green-500">●</span> Two-factor authentication is enabled.
+            </div>
+            <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Enter your password to turn it off</label>
+            <input type="password" value={pw} placeholder="Your password"
+              onChange={e => setPw(e.target.value)}
+              className="w-full rounded-lg px-4 py-3 text-sm outline-none border"
+              style={{ color: 'var(--text-primary)', background: 'var(--input-bg)', borderColor: 'var(--separator)' }} />
+            <button onClick={disable} disabled={busy || !pw}
+              className="w-full text-red-500 font-medium py-3 rounded-lg border transition-colors disabled:opacity-60"
+              style={{ borderColor: 'rgba(239,68,68,0.3)' }}>
+              {busy ? 'Please wait…' : 'Turn off two-factor authentication'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Section: Account ─────────────────────────────────────────────────────────
 function AccountSection({ onBack }: { onBack: () => void }) {
   const { user, updateUser, logout } = useAuth();
@@ -218,26 +316,7 @@ function AccountSection({ onBack }: { onBack: () => void }) {
     } catch (e: any) { setDeleteError(e.response?.data?.error || 'Failed'); }
   };
 
-  if (show2FA) return (
-    <div className="flex flex-col h-full">
-      <SectionHeader title="Two-step verification" onBack={() => setShow2FA(false)} />
-      <div className="p-5 space-y-4">
-        <div className="flex flex-col items-center gap-3 py-4">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,168,132,0.1)' }}>
-            <svg viewBox="0 0 24 24" className="w-10 h-10" style={{ fill: 'var(--accent)' }}><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-          </div>
-          <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Two-step verification</p>
-          <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>
-            Add an extra layer of security by requiring a PIN when registering your account on a new device.
-          </p>
-        </div>
-        <div className="p-4 rounded-xl text-sm" style={{ background: 'var(--hover)' }}>
-          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Coming soon</p>
-          <p style={{ color: 'var(--text-secondary)' }}>Two-step verification with PIN and email recovery is being developed and will be available in a future update.</p>
-        </div>
-      </div>
-    </div>
-  );
+  if (show2FA) return <TwoFactorSection onBack={() => setShow2FA(false)} />;
 
   if (showPassword) return (
     <div className="flex flex-col h-full">

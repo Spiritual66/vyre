@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const rateLimit = require('express-rate-limit');
+const { authenticator } = require('otplib');
 const db = require('../db');
 
 const router = express.Router();
@@ -77,9 +78,17 @@ router.post('/login', authLimiter, async (req, res) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
+    // Two-factor: if enabled, a valid TOTP code is required before a token is issued.
+    if (user.totp_enabled) {
+      const { totpCode } = req.body;
+      if (!totpCode) return res.json({ twoFactorRequired: true });
+      const ok = authenticator.verify({ token: String(totpCode).replace(/\s/g, ''), secret: user.totp_secret });
+      if (!ok) return res.status(401).json({ error: 'Invalid 2FA code' });
+    }
+
     db.prepare('UPDATE users SET last_seen = ? WHERE id = ?').run(Date.now(), user.id);
     const token = jwt.sign({ id: user.id, username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    const { password: _, ...safeUser } = user;
+    const { password: _, totp_secret: __, ...safeUser } = user;
     res.json({ token, user: safeUser });
   } catch (err) {
     res.status(500).json({ error: err.message });

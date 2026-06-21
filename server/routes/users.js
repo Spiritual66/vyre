@@ -2,6 +2,8 @@ const express = require('express');
 const path = require('path');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
+const { authenticator } = require('otplib');
+const QRCode = require('qrcode');
 const auth = require('../middleware/auth');
 const db = require('../db');
 const { UPLOADS_DIR } = require('../paths');
@@ -54,6 +56,51 @@ router.put('/me/password', auth, async (req, res) => {
   const hashed = await bcrypt.hash(newPassword, 10);
   db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashed, req.user.id);
   res.json({ success: true });
+});
+
+// ─── Two-Factor Authentication (TOTP) ───────────────────────
+const TOTP_ISSUER = 'VYRE';
+
+router.get('/me/2fa', auth, (req, res) => {
+  const u = db.prepare('SELECT totp_enabled FROM users WHERE id = ?').get(req.user.id);
+  res.json({ enabled: !!(u && u.totp_enabled) });
+});
+
+// Begin setup: generate a secret (not yet enabled) and return a QR to scan.
+router.post('/me/2fa/setup', auth, async (req, res) => {
+  try {
+    const u = db.prepare('SELECT username, email FROM users WHERE id = ?').get(req.user.id);
+    const secret = authenticator.generateSecret();
+    db.prepare('UPDATE users SET totp_secret = ?, totp_enabled = 0 WHERE id = ?').run(secret, req.user.id);
+    const otpauth = authenticator.keyuri(u.email || u.username, TOTP_ISSUER, secret);
+    const qr = await QRCode.toDataURL(otpauth);
+    res.json({ secret, otpauth, qr });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Confirm setup: verify a code against the pending secret, then enable.
+router.post('/me/2fa/enable', auth, (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: 'Code required' });
+  const u = db.prepare('SELECT totp_secret FROM users WHERE id = ?').get(req.user.id);
+  if (!u || !u.totp_secret) return res.status(400).json({ error: 'Run setup first' });
+  const ok = authenticator.verify({ token: String(code).replace(/\s/g, ''), secret: u.totp_secret });
+  if (!ok) return res.status(400).json({ error: 'Invalid code' });
+  db.prepare('UPDATE users SET totp_enabled = 1 WHERE id = ?').run(req.user.id);
+  res.json({ success: true, enabled: true });
+});
+
+// Disable 2FA — requires the account password.
+router.post('/me/2fa/disable', auth, async (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Password required' });
+  const u = db.prepare('SELECT password FROM users WHERE id = ?').get(req.user.id);
+  const valid = await bcrypt.compare(password, u.password);
+  if (!valid) return res.status(401).json({ error: 'Incorrect password' });
+  db.prepare('UPDATE users SET totp_enabled = 0, totp_secret = NULL WHERE id = ?').run(req.user.id);
+  res.json({ success: true, enabled: false });
 });
 
 // Delete account

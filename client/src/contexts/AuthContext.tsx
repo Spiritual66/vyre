@@ -6,7 +6,7 @@ import { disconnectSocket } from '../api/socket';
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, totpCode?: string) => Promise<{ twoFactorRequired?: boolean }>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
@@ -20,14 +20,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
 
-  const login = async (emailOrUsername: string, password: string) => {
+  const login = async (emailOrUsername: string, password: string, totpCode?: string) => {
     const isEmail = emailOrUsername.includes('@');
-    const body = isEmail ? { email: emailOrUsername, password } : { username: emailOrUsername, password };
-    const { data } = await api.post('/auth/login', body);
+    const base = isEmail ? { email: emailOrUsername, password } : { username: emailOrUsername, password };
+    const { data } = await api.post('/auth/login', totpCode ? { ...base, totpCode } : base);
+    // Account has 2FA enabled and no/invalid code was supplied yet.
+    if (data.twoFactorRequired && !data.token) return { twoFactorRequired: true };
     setToken(data.token);
     setUser(data.user);
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
+    return {};
   };
 
   const register = async (username: string, email: string, password: string) => {
