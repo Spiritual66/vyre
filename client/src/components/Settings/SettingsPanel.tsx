@@ -482,7 +482,67 @@ function AccountSection({ onBack }: { onBack: () => void }) {
 }
 
 // ─── Section: Privacy ─────────────────────────────────────────────────────────
+// Manage the list of contacts who can't see my status updates.
+function StatusExcludesSection({ onBack }: { onBack: () => void }) {
+  type U = { id: string; username: string; avatar: string | null };
+  const [excluded, setExcluded] = useState<U[]>([]);
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<U[]>([]);
+
+  useEffect(() => { api.get('/statuses/privacy/excludes').then(({ data }) => setExcluded(data)).catch(() => {}); }, []);
+  useEffect(() => {
+    const term = q.trim();
+    if (!term) { setResults([]); return; }
+    const t = setTimeout(() => { api.get(`/users/search?q=${encodeURIComponent(term)}`).then(({ data }) => setResults(data)).catch(() => {}); }, 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const isExcluded = (id: string) => excluded.some(u => u.id === id);
+  const toggle = async (u: U) => {
+    if (isExcluded(u.id)) { setExcluded(p => p.filter(x => x.id !== u.id)); api.delete(`/statuses/privacy/exclude/${u.id}`).catch(() => {}); }
+    else { setExcluded(p => [...p, u]); api.post(`/statuses/privacy/exclude/${u.id}`).catch(() => {}); }
+  };
+  const circle = (u: U) => (
+    <div className="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm text-white shrink-0" style={{ background: 'var(--accent)' }}>
+      {u.username[0]?.toUpperCase()}
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto">
+      <SectionHeader title="Hide status from" onBack={onBack} />
+      <p className="px-5 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>People you add here won't see your status updates.</p>
+      {excluded.length > 0 && (
+        <>
+          <SectionDivider label={`Hidden from (${excluded.length})`} />
+          {excluded.map(u => (
+            <div key={u.id} className="flex items-center gap-3 px-5 py-2.5">
+              {circle(u)}
+              <span className="flex-1 text-sm truncate" style={{ color: 'var(--text-primary)' }}>{u.username}</span>
+              <button type="button" onClick={() => toggle(u)} className="text-sm font-medium" style={{ color: 'var(--accent)' }}>Remove</button>
+            </div>
+          ))}
+        </>
+      )}
+      <SectionDivider label="Add people" />
+      <div className="px-5 py-2">
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search people…"
+          className="w-full rounded-lg px-4 py-2.5 text-sm outline-none border"
+          style={{ color: 'var(--text-primary)', background: 'var(--input-bg)', borderColor: 'var(--separator)' }} />
+      </div>
+      {results.filter(u => !isExcluded(u.id)).map(u => (
+        <button key={u.id} type="button" onClick={() => toggle(u)} className="w-full flex items-center gap-3 px-5 py-2.5 text-left hover:opacity-80">
+          {circle(u)}
+          <span className="flex-1 text-sm truncate" style={{ color: 'var(--text-primary)' }}>{u.username}</span>
+          <span className="text-sm font-medium" style={{ color: 'var(--accent)' }}>Hide</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function PrivacySection({ onBack }: { onBack: () => void }) {
+  const [showStatusExcludes, setShowStatusExcludes] = useState(false);
   const [settings, setSettings] = useState<PrivacySettings>({
     last_seen: 'everyone', profile_photo: 'everyone', about_visibility: 'everyone',
     groups_visibility: 'everyone', status_visibility: 'everyone',
@@ -524,6 +584,8 @@ function PrivacySection({ onBack }: { onBack: () => void }) {
     setBlockedUsers(prev => prev.filter(u => u.id !== userId));
   };
 
+  if (showStatusExcludes) return <StatusExcludesSection onBack={() => setShowStatusExcludes(false)} />;
+
   const visOpts = [{ value: 'everyone', label: 'Everyone' }, { value: 'nobody', label: 'Nobody' }];
   const disappearOpts = [
     { value: 0, label: 'Off' }, { value: 86400, label: '24 hours' },
@@ -543,6 +605,11 @@ function PrivacySection({ onBack }: { onBack: () => void }) {
       <RadioGroup label="About" options={visOpts} value={settings.about_visibility} onChange={v => update({ about_visibility: v as any })} />
       <div className="h-px mx-5" style={{ background: 'var(--separator)' }} />
       <RadioGroup label="Status" options={visOpts} value={settings.status_visibility} onChange={v => update({ status_visibility: v as any })} />
+      <button type="button" onClick={() => setShowStatusExcludes(true)}
+        className="w-full flex items-center justify-between px-5 py-3 hover:opacity-80 text-left">
+        <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Hide status from specific people…</span>
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" style={{ color: 'var(--icon)' }}><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </button>
 
       <SectionDivider label="Groups" />
       <RadioGroup label="Who can add me to groups" options={visOpts} value={settings.groups_visibility} onChange={v => update({ groups_visibility: v as any })} />
