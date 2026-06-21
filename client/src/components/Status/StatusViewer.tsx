@@ -18,6 +18,7 @@ interface Viewer {
   username: string;
   avatar: string | null;
   viewed_at: number;
+  reaction?: string | null;
 }
 
 export default function StatusViewer({ allGroups, startIndex, onClose }: Props) {
@@ -32,6 +33,7 @@ export default function StatusViewer({ allGroups, startIndex, onClose }: Props) 
   const [reply, setReply] = useState('');
   const [replySent, setReplySent] = useState(false);
   const [replyLoading, setReplyLoading] = useState(false);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
   const [deleting, setDeleting] = useState(false);
   // Local map of statusId -> view_count for real-time updates
@@ -112,6 +114,7 @@ export default function StatusViewer({ allGroups, startIndex, onClose }: Props) 
     setReplySent(false);
     setShowViewers(false);
     setViewers([]);
+    setMyReaction(current?.my_reaction ?? null);
   }, [current?.id]);
 
   // Load viewers for own statuses
@@ -158,11 +161,14 @@ export default function StatusViewer({ allGroups, startIndex, onClose }: Props) 
 
   const sendReaction = async (emoji: string) => {
     if (!current) return;
+    const next = myReaction === emoji ? '' : emoji; // tap the active one again to remove
+    const prev = myReaction;
+    setMyReaction(next || null);
     try {
-      await api.post(`/statuses/${current.id}/reply`, { content: emoji });
-      setReplySent(true);
-      setTimeout(() => setReplySent(false), 2000);
-    } catch {}
+      await api.post(`/statuses/${current.id}/react`, { emoji: next });
+    } catch {
+      setMyReaction(prev); // revert on failure
+    }
   };
 
   const handlePauseStart = () => {
@@ -320,7 +326,10 @@ export default function StatusViewer({ allGroups, startIndex, onClose }: Props) 
                 <button key={emoji}
                   onClick={e => { e.stopPropagation(); sendReaction(emoji); }}
                   className="w-9 h-9 flex items-center justify-center rounded-full text-lg transition-transform hover:scale-125 shadow-lg"
-                  style={{ background: 'rgba(0,0,0,0.4)' }}>
+                  style={{
+                    background: myReaction === emoji ? 'var(--accent)' : 'rgba(0,0,0,0.4)',
+                    transform: myReaction === emoji ? 'scale(1.15)' : undefined,
+                  }}>
                   {emoji}
                 </button>
               ))}
@@ -394,6 +403,7 @@ export default function StatusViewer({ allGroups, startIndex, onClose }: Props) 
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{v.username}</p>
                   </div>
+                  {v.reaction && <span className="text-base shrink-0">{v.reaction}</span>}
                   <span className="text-xs shrink-0" style={{ color: 'var(--text-tertiary)' }}>
                     {formatViewedAt(v.viewed_at)}
                   </span>

@@ -61,9 +61,22 @@ export default function StatusBar() {
 
   const myGroup = groups.find(g => g.user_id === user?.id);
   const others = groups.filter(g => g.user_id !== user?.id);
-  const recent = others.filter(g => g.statuses.some(s => s.viewed === 0));
-  const viewed = others.filter(g => g.statuses.every(s => s.viewed > 0));
-  const allOthers = [...recent, ...viewed];
+  const unmuted = others.filter(g => !g.muted);
+  const mutedGroups = others.filter(g => g.muted);
+  const recent = unmuted.filter(g => g.statuses.some(s => s.viewed === 0));
+  const viewed = unmuted.filter(g => g.statuses.every(s => s.viewed > 0));
+  const allOthers = [...recent, ...viewed, ...mutedGroups];
+
+  const toggleMute = useCallback(async (g: StatusGroup) => {
+    const nowMuted = !g.muted;
+    setGroups(prev => prev.map(grp => grp.user_id === g.user_id ? { ...grp, muted: nowMuted } : grp));
+    try {
+      if (nowMuted) await api.post(`/statuses/mute/${g.user_id}`);
+      else await api.delete(`/statuses/mute/${g.user_id}`);
+    } catch {
+      setGroups(prev => prev.map(grp => grp.user_id === g.user_id ? { ...grp, muted: g.muted } : grp));
+    }
+  }, []);
 
   // Optimistically mark all statuses in a group as viewed in local state
   const markGroupViewed = useCallback((g: StatusGroup) => {
@@ -90,6 +103,30 @@ export default function StatusBar() {
     unviewed
       ? 'p-0.5 bg-gradient-to-br from-green-400 to-teal-500'
       : 'p-0.5 border-2 border-[color:var(--separator)]';
+
+  const renderRow = (g: StatusGroup, unviewed: boolean) => (
+    <div key={g.user_id} className="w-full flex items-center gap-2 px-4 py-2.5 hover:opacity-90 transition-opacity">
+      <button onClick={() => openOther(g)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+        <div className={`rounded-full ${statusRing(unviewed)}`}>
+          <Avatar src={g.avatar} name={g.username} size={46} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{g.username}</p>
+          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            {timeAgo(g.statuses[g.statuses.length - 1].created_at)}
+            {unviewed && g.statuses.filter(s => s.viewed === 0).length > 1 && ` · ${g.statuses.filter(s => s.viewed === 0).length} new`}
+          </p>
+        </div>
+      </button>
+      {unviewed && <div className="w-2.5 h-2.5 rounded-full bg-wa-green shrink-0" />}
+      <button onClick={() => toggleMute(g)} title={g.muted ? 'Unmute status updates' : 'Mute status updates'}
+        className="p-1.5 rounded-full hover:opacity-70 shrink-0" style={{ color: 'var(--icon)' }}>
+        {g.muted
+          ? <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18z"/></svg>
+          : <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>}
+      </button>
+    </div>
+  );
 
   return (
     <>
@@ -128,23 +165,7 @@ export default function StatusBar() {
               style={{ background: 'var(--bg)', color: 'var(--text-tertiary)' }}>
               Recent updates
             </div>
-            {recent.map(g => (
-              <button key={g.user_id} onClick={() => openOther(g)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:opacity-80 transition-opacity text-left">
-                <div className={`rounded-full ${statusRing(true)}`}>
-                  <Avatar src={g.avatar} name={g.username} size={46} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{g.username}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    {timeAgo(g.statuses[g.statuses.length - 1].created_at)}
-                    {g.statuses.filter(s => s.viewed === 0).length > 1 &&
-                      ` · ${g.statuses.filter(s => s.viewed === 0).length} new`}
-                  </p>
-                </div>
-                <div className="w-2.5 h-2.5 rounded-full bg-wa-green shrink-0" />
-              </button>
-            ))}
+            {recent.map(g => renderRow(g, true))}
           </>
         )}
 
@@ -155,20 +176,18 @@ export default function StatusBar() {
               style={{ background: 'var(--bg)', color: 'var(--text-tertiary)' }}>
               Viewed updates
             </div>
-            {viewed.map(g => (
-              <button key={g.user_id} onClick={() => openOther(g)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:opacity-80 transition-opacity text-left">
-                <div className={`rounded-full ${statusRing(false)}`}>
-                  <Avatar src={g.avatar} name={g.username} size={46} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{g.username}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    {timeAgo(g.statuses[g.statuses.length - 1].created_at)}
-                  </p>
-                </div>
-              </button>
-            ))}
+            {viewed.map(g => renderRow(g, false))}
+          </>
+        )}
+
+        {/* Muted updates */}
+        {mutedGroups.length > 0 && (
+          <>
+            <div className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wide"
+              style={{ background: 'var(--bg)', color: 'var(--text-tertiary)' }}>
+              Muted updates
+            </div>
+            {mutedGroups.map(g => renderRow(g, false))}
           </>
         )}
 

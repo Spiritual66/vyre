@@ -95,12 +95,15 @@ export interface StatusItem {
   created_at: number;
   viewed: number;      // 0 or 1: whether the current viewer has seen this
   view_count: number;  // total unique viewers
+  my_reaction?: string | null;   // current viewer's reaction emoji, if any
+  reaction_count?: number;       // total reactions
 }
 
 export interface StatusGroup {
   user_id: string;
   username: string;
   avatar: string | null;
+  muted?: boolean;     // viewer has muted this poster's status updates
   statuses: StatusItem[];
 }
 

@@ -5,6 +5,7 @@ const SOLID_COLORS = [
   '#075e54','#128c7e','#25d366','#1a1a2e',
   '#16213e','#0f3460','#e94560','#f5a623',
   '#7b2d8b','#2c3e50','#c0392b','#e67e22',
+  '#000000','#34495e','#8e44ad','#d35400',
 ];
 const GRADIENTS = [
   'linear-gradient(135deg,#667eea,#764ba2)',
@@ -15,6 +16,10 @@ const GRADIENTS = [
   'linear-gradient(135deg,#30cfd0,#330867)',
   'linear-gradient(135deg,#a18cd1,#fbc2eb)',
   'linear-gradient(135deg,#ffecd2,#fcb69f)',
+  'linear-gradient(135deg,#0ba360,#3cba92)',
+  'linear-gradient(135deg,#ff0844,#ffb199)',
+  'linear-gradient(135deg,#2b5876,#4e4376)',
+  'linear-gradient(135deg,#141e30,#243b55)',
 ];
 const FONTS = [
   { label: 'Sans', value: 'ui-sans-serif, system-ui, sans-serif' },
