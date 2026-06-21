@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const rateLimit = require('express-rate-limit');
 const { authenticator } = require('otplib');
+const crypto = require('crypto');
+const { sendMail, isConfigured: mailConfigured } = require('../mailer');
 const db = require('../db');
 
 const router = express.Router();
@@ -90,6 +92,68 @@ router.post('/login', authLimiter, async (req, res) => {
     const token = jwt.sign({ id: user.id, username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     const { password: _, totp_secret: __, ...safeUser } = user;
     res.json({ token, user: safeUser });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Password reset ─────────────────────────────────────────
+const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function appUrl(req) {
+  return process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || req.headers.origin || 'http://localhost:5173';
+}
+
+// Request a reset link. Always returns a generic response (no account enumeration).
+router.post('/forgot-password', authLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const user = db.prepare('SELECT id, username, email FROM users WHERE email = ?')
+      .get(String(email).trim().toLowerCase());
+
+    const generic = { success: true, message: 'If an account exists for that email, a reset link has been sent.' };
+    if (!user) return res.json(generic);
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(user.id); // one active token
+    db.prepare('INSERT INTO password_resets (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)')
+      .run(tokenHash, user.id, Date.now() + RESET_TTL_MS, Date.now());
+
+    const link = `${appUrl(req)}/?reset=${token}`;
+    const html = `<p>Hi ${user.username},</p>
+      <p>Reset your VYRE password with the link below (valid for 1 hour):</p>
+      <p><a href="${link}">${link}</a></p>
+      <p>If you didn't request this, you can safely ignore this email.</p>`;
+    try { await sendMail({ to: user.email, subject: 'Reset your VYRE password', html, text: link }); }
+    catch (e) { console.warn('[forgot-password] email send failed:', e.message); }
+
+    // Dev convenience: when SMTP isn't configured (and not in prod), return the link so it's usable.
+    const devResetLink = (!mailConfigured && process.env.NODE_ENV !== 'production') ? link : undefined;
+    res.json(devResetLink ? { ...generic, devResetLink } : generic);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Complete the reset with a valid token.
+router.post('/reset-password', authLimiter, async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) return res.status(400).json({ error: 'Token and new password required' });
+    if (newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+    const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+    const row = db.prepare('SELECT user_id, expires_at FROM password_resets WHERE token_hash = ?').get(tokenHash);
+    if (!row || row.expires_at < Date.now()) {
+      if (row) db.prepare('DELETE FROM password_resets WHERE token_hash = ?').run(tokenHash);
+      return res.status(400).json({ error: 'Invalid or expired reset link. Request a new one.' });
+    }
+    const hashed = await bcrypt.hash(newPassword, 10);
+    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashed, row.user_id);
+    db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(row.user_id); // invalidate all
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

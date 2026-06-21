@@ -193,6 +193,14 @@ db.exec(`
     FOREIGN KEY (message_id) REFERENCES messages(id),
     FOREIGN KEY (pinned_by) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS password_resets (
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
 `);
 
 // Migration: add columns that may not exist in older DB files
