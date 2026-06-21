@@ -208,6 +208,7 @@ const migrations = [
   { table: 'user_settings', column: 'groups_visibility', def: "TEXT DEFAULT 'everyone'" },
   { table: 'user_settings', column: 'status_visibility', def: "TEXT DEFAULT 'everyone'" },
   { table: 'user_settings', column: 'disappearing_messages', def: 'INTEGER DEFAULT 0' },
+  { table: 'user_settings', column: 'disappearing_set_at', def: 'INTEGER DEFAULT NULL' },
   { table: 'users', column: 'is_banned', def: 'INTEGER DEFAULT 0' },
   { table: 'users', column: 'admin_note', def: 'TEXT DEFAULT NULL' },
   { table: 'users', column: 'totp_secret', def: 'TEXT DEFAULT NULL' },

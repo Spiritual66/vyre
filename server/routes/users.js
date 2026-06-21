@@ -148,7 +148,12 @@ router.put('/me/settings', auth, (req, res) => {
   if (read_receipts !== undefined) { fields.push('read_receipts = ?'); vals.push(read_receipts ? 1 : 0); }
   if (groups_visibility !== undefined) { fields.push('groups_visibility = ?'); vals.push(groups_visibility); }
   if (status_visibility !== undefined) { fields.push('status_visibility = ?'); vals.push(status_visibility); }
-  if (disappearing_messages !== undefined) { fields.push('disappearing_messages = ?'); vals.push(disappearing_messages); }
+  if (disappearing_messages !== undefined) {
+    fields.push('disappearing_messages = ?'); vals.push(disappearing_messages);
+    // Stamp when the timer was (re)enabled so only messages sent afterwards
+    // disappear — turning it on never retroactively wipes old history.
+    fields.push('disappearing_set_at = ?'); vals.push(disappearing_messages > 0 ? Date.now() : null);
+  }
   if (fields.length) {
     vals.push(req.user.id);
     db.prepare(`UPDATE user_settings SET ${fields.join(', ')} WHERE user_id = ?`).run(...vals);

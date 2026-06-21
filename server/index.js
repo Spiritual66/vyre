@@ -100,6 +100,9 @@ app.use('/api/admin', require('./routes/admin')(io));
 
 require('./socket/handlers')(io);
 
+// Background data-lifecycle sweeps: disappearing messages + expired statuses.
+require('./jobs/cleanup')(io);
+
 // Serve built frontend in production (used by Docker, Electron)
 if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../client/dist');
