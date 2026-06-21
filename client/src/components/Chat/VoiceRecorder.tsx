@@ -30,8 +30,8 @@ export default function VoiceRecorder({ onSend, onCancel, onError }: Props) {
 
   const mediaRef   = useRef<MediaRecorder | null>(null);
   const chunksRef  = useRef<BlobPart[]>([]);
-  const timerRef   = useRef<ReturnType<typeof setInterval>>();
-  const animRef    = useRef<number>();
+  const timerRef   = useRef<ReturnType<typeof setInterval>>(undefined);
+  const animRef    = useRef<number>(undefined);
   const ctxRef     = useRef<AudioContext | null>(null);
   const startRef   = useRef(Date.now());
   const historyRef = useRef<number[]>(Array(BAR_COUNT).fill(0.04));

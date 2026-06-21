@@ -68,7 +68,7 @@ export default function LocationPicker({ onConfirm, onClose }: Props) {
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<LocationResult | null>(null);
   const [searchMapLoaded, setSearchMapLoaded] = useState(false);
-  const searchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const fetchGPS = useCallback(() => {

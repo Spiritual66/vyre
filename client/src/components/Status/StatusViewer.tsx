@@ -41,7 +41,7 @@ export default function StatusViewer({ allGroups, startIndex, onClose }: Props) 
     return init;
   });
   const videoRef = useRef<HTMLVideoElement>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const startRef = useRef<number>(0);
   const pausedAtRef = useRef<number>(0);
   const replyInputRef = useRef<HTMLInputElement>(null);

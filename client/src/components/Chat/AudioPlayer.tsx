@@ -41,7 +41,7 @@ export default function AudioPlayer({ src, isOwn, knownDuration }: Props) {
   const pausedAtRef = useRef(0);    // seconds into track where we paused
   const rateRef = useRef(1);
   const playingRef = useRef(false);
-  const animRef = useRef<number>();
+  const animRef = useRef<number>(undefined);
   const mountedRef = useRef(true);
   const durationRef = useRef(knownDuration ?? 0);
 

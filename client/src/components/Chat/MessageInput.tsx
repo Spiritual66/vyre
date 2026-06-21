@@ -53,9 +53,9 @@ export default function MessageInput({ chatId, onSend, onTyping, replyTo, onCanc
   const fileRef = useRef<HTMLInputElement>(null);     // documents / all files
   const imageRef = useRef<HTMLInputElement>(null);    // photos & videos
   const dropRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const isTypingRef = useRef(false);
-  const contactSearchRef = useRef<ReturnType<typeof setTimeout>>();
+  const contactSearchRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // ─── Text / draft ─────────────────────────────────────────
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
