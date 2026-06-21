@@ -201,6 +201,34 @@ db.exec(`
     created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS status_reactions (
+    status_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+    PRIMARY KEY (status_id, user_id),
+    FOREIGN KEY (status_id) REFERENCES statuses(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS status_mutes (
+    muter_id TEXT NOT NULL,
+    muted_id TEXT NOT NULL,
+    created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+    PRIMARY KEY (muter_id, muted_id),
+    FOREIGN KEY (muter_id) REFERENCES users(id),
+    FOREIGN KEY (muted_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS status_excludes (
+    user_id TEXT NOT NULL,
+    excluded_id TEXT NOT NULL,
+    created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+    PRIMARY KEY (user_id, excluded_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (excluded_id) REFERENCES users(id)
+  );
 `);
 
 // Migration: add columns that may not exist in older DB files
