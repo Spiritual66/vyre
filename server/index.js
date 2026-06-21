@@ -71,6 +71,11 @@ if (process.env.RENDER_EXTERNAL_URL && !allowedOrigins.includes(process.env.REND
   allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
 }
 
+// Capacitor native WebView origins, so the Android/iOS app can call the API.
+['capacitor://localhost', 'http://localhost', 'https://localhost'].forEach(o => {
+  if (!allowedOrigins.includes(o)) allowedOrigins.push(o);
+});
+
 const corsOptions = {
   origin(origin, cb) {
     // Allow requests with no origin (mobile apps, Electron file://, Postman)
