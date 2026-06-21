@@ -1,12 +1,26 @@
 require('dotenv').config();
+const crypto = require('crypto');
+const db = require('./db');
 
-// Fail fast in production if using the insecure default JWT secret
-if (
-  process.env.NODE_ENV === 'production' &&
-  (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'vyre_dev_secret_change_in_production')
-) {
-  console.error('[FATAL] JWT_SECRET is not set or is the default value. Set a strong secret before deploying.');
-  process.exit(1);
+// Resolve a JWT secret without a hard fail or the insecure default:
+//   1) use JWT_SECRET from the environment (recommended — stable & shared), else
+//   2) reuse a random secret persisted in the DB (survives restarts), else
+//   3) generate one on first boot and persist it.
+// This never runs on the known default secret, so it's secure either way.
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'vyre_dev_secret_change_in_production') {
+  try {
+    let row = db.prepare("SELECT value FROM admin_settings WHERE key = 'jwt_secret'").get();
+    if (!row) {
+      const generated = crypto.randomBytes(48).toString('base64url');
+      db.prepare("INSERT INTO admin_settings (key, value) VALUES ('jwt_secret', ?)").run(generated);
+      row = { value: generated };
+      console.warn('[auth] JWT_SECRET not set — generated and persisted a strong random secret. Set JWT_SECRET in the environment for a stable, shared secret across instances.');
+    }
+    process.env.JWT_SECRET = row.value;
+  } catch (e) {
+    console.error('[FATAL] Could not resolve a JWT secret:', e.message);
+    process.exit(1);
+  }
 }
 
 const express = require('express');
@@ -79,7 +93,6 @@ require('./uploads-init');
 app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 
 // Maintenance mode — checked before all non-admin routes
-const db = require('./db');
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/admin') || req.path.startsWith('/api/auth/admin-login')) return next();
   try {
