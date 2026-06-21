@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext.tsx'
-import AdminLogin from './components/Admin/AdminLogin.tsx'
-import AdminApp from './components/Admin/AdminApp.tsx'
 import './index.css'
+
+// Admin panel is only needed on /admin — code-split so normal users never download it.
+const AdminLogin = lazy(() => import('./components/Admin/AdminLogin.tsx'))
+const AdminApp = lazy(() => import('./components/Admin/AdminApp.tsx'))
 
 function AdminRoot() {
   const [adminToken, setAdminToken] = useState<string | null>(() => {
@@ -39,7 +41,7 @@ const isAdmin = window.location.pathname.startsWith('/admin');
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     {isAdmin ? (
-      <AdminRoot />
+      <Suspense fallback={null}><AdminRoot /></Suspense>
     ) : (
       <AuthProvider>
         <App />

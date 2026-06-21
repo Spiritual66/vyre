@@ -1,6 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import Picker from '@emoji-mart/react';
-import data from '@emoji-mart/data';
+import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
+const EmojiPicker = lazy(() => import('./EmojiPicker'));
 import { Message } from '../../types';
 import api from '../../api/axios';
 import VoiceRecorder from './VoiceRecorder';
@@ -534,7 +533,9 @@ export default function MessageInput({ chatId, onSend, onTyping, replyTo, onCanc
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowEmoji(false)} />
                     <div className="absolute z-50 fade-in" style={{ bottom: '100%', left: 0, marginBottom: 8 }}>
-                      <Picker data={data} onEmojiSelect={addEmoji} theme="auto" previewPosition="none" />
+                      <Suspense fallback={<div className="rounded-lg p-4 text-xs" style={{ background: 'var(--panel)', color: 'var(--text-tertiary)' }}>Loading emoji…</div>}>
+                        <EmojiPicker onEmojiSelect={addEmoji} />
+                      </Suspense>
                     </div>
                   </>
                 )}

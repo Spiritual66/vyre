@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { SocketProvider, useSocket } from './contexts/SocketContext';
 import { Chat, Message } from './types';
@@ -6,8 +6,9 @@ import AuthScreen from './components/Auth/AuthScreen';
 import Sidebar from './components/Sidebar/Sidebar';
 import ChatWindow from './components/Chat/ChatWindow';
 import WelcomeScreen from './components/Chat/WelcomeScreen';
-import CallModal from './components/Call/CallModal';
 import ToastNotification, { ToastItem } from './components/Toast/ToastNotification';
+// WebRTC call UI is heavy and only needed during a call — load on demand.
+const CallModal = lazy(() => import('./components/Call/CallModal'));
 import api from './api/axios';
 
 // Apply persisted appearance settings before first render
@@ -170,15 +171,17 @@ function AppInner({
       </div>
 
       {activeCall && (
-        <CallModal
-          callId={activeCall.callId}
-          type={activeCall.type}
-          mode={activeCall.mode}
-          remoteUser={activeCall.remoteUser}
-          offer={activeCall.offer}
-          onClose={() => setActiveCall(null)}
-          onAccepted={onCallAccepted}
-        />
+        <Suspense fallback={null}>
+          <CallModal
+            callId={activeCall.callId}
+            type={activeCall.type}
+            mode={activeCall.mode}
+            remoteUser={activeCall.remoteUser}
+            offer={activeCall.offer}
+            onClose={() => setActiveCall(null)}
+            onAccepted={onCallAccepted}
+          />
+        </Suspense>
       )}
 
       <ToastNotification
