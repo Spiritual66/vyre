@@ -5,8 +5,10 @@
 # linux-x64-gnu build rather than the musl variant.
 FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /app/client
-COPY client/package*.json ./
-RUN npm ci --prefer-offline
+# Copy .npmrc too (legacy-peer-deps) — @emoji-mart/react's peer range predates
+# React 19, so strict resolution would abort npm ci.
+COPY client/package*.json client/.npmrc ./
+RUN npm ci --prefer-offline --legacy-peer-deps
 COPY client/ .
 # Built same-origin (no VITE_API_URL) — the backend serves these files.
 RUN npm run build
