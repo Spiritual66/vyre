@@ -1,7 +1,9 @@
 # Multi-stage: build frontend, then serve everything from the backend.
 # Lives at the repo root (build context = repo root) so Render's default
 # Dockerfile path finds it. COPY paths are relative to the repo root.
-FROM node:20-alpine AS frontend-builder
+# Debian (glibc) so @vitejs/plugin-react-swc's native binary uses the standard
+# linux-x64-gnu build rather than the musl variant.
+FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm ci --prefer-offline

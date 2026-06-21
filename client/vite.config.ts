@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import react from '@vitejs/plugin-react-swc'
 import { VitePWA } from 'vite-plugin-pwa'
 import fs from 'node:fs'
 
@@ -64,16 +64,6 @@ export default defineConfig({
       // (e.g. that port is taken by the Db2 IDE extension).
       '/api': process.env.VITE_PROXY_TARGET || 'http://localhost:3001',
       '/uploads': process.env.VITE_PROXY_TARGET || 'http://localhost:3001',
-    },
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          socket: ['socket.io-client'],
-        },
-      },
     },
   },
 })
