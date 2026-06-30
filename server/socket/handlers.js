@@ -422,3 +422,6 @@ module.exports = (io) => {
 
   return { onlineUsers };
 };
+
+// Used by the scheduled-message cron to push only to offline recipients.
+module.exports.isOnline = (userId) => onlineUsers.has(userId);

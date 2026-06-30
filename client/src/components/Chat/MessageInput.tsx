@@ -7,6 +7,7 @@ import LocationPicker from './LocationPicker';
 import StickerPicker from './StickerPicker';
 import WritingTools from './WritingTools';
 import PollCreator from './PollCreator';
+import ScheduleModal from './ScheduleModal';
 
 interface ContactSearchResult {
   id: string;
@@ -45,6 +46,7 @@ export default function MessageInput({ chatId, onSend, onTyping, replyTo, onCanc
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [showPollCreator, setShowPollCreator] = useState(false);
+  const [showScheduler, setShowScheduler] = useState(false);
   const [showWritingTools, setShowWritingTools] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
   const [contactResults, setContactResults] = useState<ContactSearchResult[]>([]);
@@ -320,6 +322,16 @@ export default function MessageInput({ chatId, onSend, onTyping, replyTo, onCanc
       ),
       action: () => { setShowPollCreator(true); setShowAttachMenu(false); },
     },
+    {
+      label: 'Schedule',
+      color: '#f59e0b',
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+          <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/>
+        </svg>
+      ),
+      action: () => { setShowScheduler(true); setShowAttachMenu(false); },
+    },
   ];
 
   const hasText = text.trim().length > 0;
@@ -329,6 +341,14 @@ export default function MessageInput({ chatId, onSend, onTyping, replyTo, onCanc
       {/* ── Modals ─────────────────────────────────────────── */}
       {showPollCreator && (
         <PollCreator onCreate={handleCreatePoll} onClose={() => setShowPollCreator(false)} />
+      )}
+      {showScheduler && (
+        <ScheduleModal
+          chatId={chatId}
+          text={text}
+          onClose={() => setShowScheduler(false)}
+          onScheduled={() => { setText(''); sessionStorage.removeItem(DRAFT_KEY(chatId)); }}
+        />
       )}
       {showLocationPicker && (
         <LocationPicker onConfirm={handleLocationConfirm} onClose={() => setShowLocationPicker(false)} />

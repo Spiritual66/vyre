@@ -248,6 +248,22 @@ db.exec(`
     FOREIGN KEY (message_id) REFERENCES messages(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS scheduled_messages (
+    id TEXT PRIMARY KEY,
+    chat_id TEXT NOT NULL,
+    sender_id TEXT NOT NULL,
+    content TEXT,
+    type TEXT DEFAULT 'text',
+    file_url TEXT DEFAULT NULL,
+    file_name TEXT DEFAULT NULL,
+    file_size INTEGER DEFAULT NULL,
+    reply_to TEXT DEFAULT NULL,
+    send_at INTEGER NOT NULL,
+    created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+    FOREIGN KEY (chat_id) REFERENCES chats(id),
+    FOREIGN KEY (sender_id) REFERENCES users(id)
+  );
 `);
 
 // Migration: add columns that may not exist in older DB files

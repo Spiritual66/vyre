@@ -292,5 +292,38 @@ module.exports = (io) => {
     res.json(state);
   });
 
+  // ─── Scheduled messages ──────────────────────────────────
+  router.post('/schedule', auth, (req, res) => {
+    const { chatId, content, type = 'text', fileUrl = null, fileName = null, fileSize = null, replyTo = null, sendAt } = req.body || {};
+    if (!chatId || !sendAt) return res.status(400).json({ error: 'chatId and sendAt required' });
+    if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chatId, req.user.id))
+      return res.status(403).json({ error: 'Not a member' });
+    const when = Number(sendAt);
+    if (!Number.isFinite(when) || when < Date.now() + 5000) return res.status(400).json({ error: 'sendAt must be in the future' });
+    if (when > Date.now() + 365 * 24 * 3600 * 1000) return res.status(400).json({ error: 'Too far in the future' });
+    if (type === 'text' && !(content && content.trim())) return res.status(400).json({ error: 'Content required' });
+    const id = uuidv4();
+    db.prepare(`INSERT INTO scheduled_messages (id, chat_id, sender_id, content, type, file_url, file_name, file_size, reply_to, send_at, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(id, chatId, req.user.id, content || null, type, fileUrl, fileName, fileSize, replyTo, when, Date.now());
+    res.json(db.prepare('SELECT * FROM scheduled_messages WHERE id = ?').get(id));
+  });
+
+  router.get('/scheduled', auth, (req, res) => {
+    const { chatId } = req.query;
+    const rows = chatId
+      ? db.prepare('SELECT * FROM scheduled_messages WHERE sender_id = ? AND chat_id = ? ORDER BY send_at ASC').all(req.user.id, chatId)
+      : db.prepare('SELECT * FROM scheduled_messages WHERE sender_id = ? ORDER BY send_at ASC').all(req.user.id);
+    res.json(rows);
+  });
+
+  router.delete('/scheduled/:id', auth, (req, res) => {
+    const row = db.prepare('SELECT sender_id FROM scheduled_messages WHERE id = ?').get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    if (row.sender_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+    db.prepare('DELETE FROM scheduled_messages WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+  });
+
   return router;
 };
