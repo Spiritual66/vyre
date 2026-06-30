@@ -238,6 +238,16 @@ db.exec(`
     created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS poll_votes (
+    message_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    option_index INTEGER NOT NULL,
+    created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+    PRIMARY KEY (message_id, user_id),
+    FOREIGN KEY (message_id) REFERENCES messages(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 `);
 
 // Migration: add columns that may not exist in older DB files

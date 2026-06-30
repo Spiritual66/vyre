@@ -6,6 +6,7 @@ import VoiceRecorder from './VoiceRecorder';
 import LocationPicker from './LocationPicker';
 import StickerPicker from './StickerPicker';
 import WritingTools from './WritingTools';
+import PollCreator from './PollCreator';
 
 interface ContactSearchResult {
   id: string;
@@ -43,6 +44,7 @@ export default function MessageInput({ chatId, onSend, onTyping, replyTo, onCanc
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [showPollCreator, setShowPollCreator] = useState(false);
   const [showWritingTools, setShowWritingTools] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
   const [contactResults, setContactResults] = useState<ContactSearchResult[]>([]);
@@ -170,6 +172,12 @@ export default function MessageInput({ chatId, onSend, onTyping, replyTo, onCanc
     onSend(emoji, 'sticker', undefined, replyTo?.id);
     onCancelReply?.();
     setShowStickerPicker(false);
+  };
+
+  const handleCreatePoll = (poll: { question: string; options: string[] }) => {
+    onSend(JSON.stringify(poll), 'poll', undefined, replyTo?.id);
+    onCancelReply?.();
+    setShowPollCreator(false);
   };
 
   // ─── Writing tools apply ───────────────────────────────────
@@ -302,6 +310,16 @@ export default function MessageInput({ chatId, onSend, onTyping, replyTo, onCanc
       ),
       action: () => { openContactPicker(); setShowAttachMenu(false); },
     },
+    {
+      label: 'Poll',
+      color: '#8b5cf6',
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+          <path d="M5 9h3v10H5zm5.5-5h3v15h-3zM16 13h3v6h-3z"/>
+        </svg>
+      ),
+      action: () => { setShowPollCreator(true); setShowAttachMenu(false); },
+    },
   ];
 
   const hasText = text.trim().length > 0;
@@ -309,6 +327,9 @@ export default function MessageInput({ chatId, onSend, onTyping, replyTo, onCanc
   return (
     <>
       {/* ── Modals ─────────────────────────────────────────── */}
+      {showPollCreator && (
+        <PollCreator onCreate={handleCreatePoll} onClose={() => setShowPollCreator(false)} />
+      )}
       {showLocationPicker && (
         <LocationPicker onConfirm={handleLocationConfirm} onClose={() => setShowLocationPicker(false)} />
       )}

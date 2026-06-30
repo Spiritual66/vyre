@@ -25,7 +25,7 @@ export interface Message {
   chat_id: string;
   sender_id: string;
   content: string | null;
-  type: 'text' | 'image' | 'video' | 'audio' | 'file' | 'deleted' | 'location' | 'contact' | 'sticker';
+  type: 'text' | 'image' | 'video' | 'audio' | 'file' | 'deleted' | 'location' | 'contact' | 'sticker' | 'poll';
   file_url: string | null;
   file_name: string | null;
   file_size: number | null;

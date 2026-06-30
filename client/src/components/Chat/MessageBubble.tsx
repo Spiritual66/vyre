@@ -8,6 +8,7 @@ import AudioPlayer from './AudioPlayer';
 import LocationMessage from './LocationMessage';
 import ContactCard from './ContactCard';
 import LinkPreview from './LinkPreview';
+import PollMessage from './PollMessage';
 import { format, isToday, isYesterday } from 'date-fns';
 
 function formatBytes(b: number): string {
@@ -179,6 +180,8 @@ export default function MessageBubble({ message, prevMessage, isGroup, onReply, 
         This message was deleted
       </span>
     );
+
+    if (message.type === 'poll') return <PollMessage messageId={message.id} content={message.content || ''} />;
 
     if (message.type === 'image') return (
       <div>

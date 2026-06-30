@@ -247,5 +247,50 @@ module.exports = (io) => {
     res.json({ forwarded: results });
   });
 
+  // ─── Polls ───────────────────────────────────────────────
+  // Poll question/options live in messages.content (JSON, type='poll').
+  function getPoll(messageId) {
+    const m = db.prepare('SELECT id, chat_id, type, content FROM messages WHERE id = ?').get(messageId);
+    if (!m || m.type !== 'poll') return null;
+    let poll; try { poll = JSON.parse(m.content || '{}'); } catch { poll = {}; }
+    return { m, optionCount: Array.isArray(poll.options) ? poll.options.length : 0 };
+  }
+  function tally(messageId, userId, optionCount) {
+    const rows = db.prepare('SELECT option_index AS i, COUNT(*) AS c FROM poll_votes WHERE message_id = ? GROUP BY option_index').all(messageId);
+    const counts = new Array(optionCount).fill(0);
+    let total = 0;
+    for (const r of rows) { if (r.i >= 0 && r.i < optionCount) counts[r.i] = r.c; total += r.c; }
+    const mine = db.prepare('SELECT option_index AS i FROM poll_votes WHERE message_id = ? AND user_id = ?').get(messageId, userId);
+    return { counts, total, myVote: mine ? mine.i : null };
+  }
+
+  router.get('/:id/poll', auth, (req, res) => {
+    const p = getPoll(req.params.id);
+    if (!p) return res.status(404).json({ error: 'Not a poll' });
+    if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(p.m.chat_id, req.user.id))
+      return res.status(403).json({ error: 'Forbidden' });
+    res.json(tally(req.params.id, req.user.id, p.optionCount));
+  });
+
+  router.post('/:id/vote', auth, (req, res) => {
+    const p = getPoll(req.params.id);
+    if (!p) return res.status(404).json({ error: 'Not a poll' });
+    if (!db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(p.m.chat_id, req.user.id))
+      return res.status(403).json({ error: 'Forbidden' });
+    const idx = Number(req.body.option);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= p.optionCount) return res.status(400).json({ error: 'Invalid option' });
+
+    const existing = db.prepare('SELECT option_index AS i FROM poll_votes WHERE message_id = ? AND user_id = ?').get(req.params.id, req.user.id);
+    if (existing && existing.i === idx) {
+      db.prepare('DELETE FROM poll_votes WHERE message_id = ? AND user_id = ?').run(req.params.id, req.user.id); // toggle off
+    } else {
+      db.prepare('INSERT OR REPLACE INTO poll_votes (message_id, user_id, option_index, created_at) VALUES (?, ?, ?, ?)')
+        .run(req.params.id, req.user.id, idx, Date.now());
+    }
+    const state = tally(req.params.id, req.user.id, p.optionCount);
+    io.to(`chat:${p.m.chat_id}`).emit('poll:updated', { messageId: req.params.id, chatId: p.m.chat_id, counts: state.counts, total: state.total });
+    res.json(state);
+  });
+
   return router;
 };
