@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const API = 'http://localhost:3001/api/admin';
+// Same-origin in production; honors VITE_API_URL for mobile/dev builds (like src/api/axios.ts).
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) || '/api';
+const API = `${API_BASE}/admin`;
+// Host for serving uploaded media ('' = same origin in prod).
+const MEDIA_BASE = API_BASE.replace(/\/api\/?$/, '');
 
 function adminAxios() {
   const token = localStorage.getItem('admin_token');
@@ -40,7 +44,7 @@ function UserAvatar({ name, avatar, size = 32 }: { name: string; avatar: string 
   const colors = ['#7c3aed','#2563eb','#059669','#d97706','#dc2626','#db2777','#0891b2','#65a30d'];
   const color = colors[(name.charCodeAt(0) || 0) % colors.length];
   return avatar
-    ? <img src={`http://localhost:3001${avatar}`} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
+    ? <img src={`${MEDIA_BASE}${avatar}`} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
     : <div style={{ width: size, height: size, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: size * 0.4, flexShrink: 0 }}>{name.charAt(0).toUpperCase()}</div>;
 }
 
@@ -744,8 +748,8 @@ function MediaTab({ toast }: { toast: (m: string, t?: Toast['type']) => void }) 
         {filtered.map(m => (
           <div key={m.id} style={{ background: '#1e1e2e', borderRadius: 10, overflow: 'hidden', border: '1px solid #2d2d3a' }}>
             {m.type === 'image' ? (
-              <a href={`http://localhost:3001${m.file_url}`} target="_blank" rel="noreferrer">
-                <img src={`http://localhost:3001${m.file_url}`} alt={m.file_name} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
+              <a href={`${MEDIA_BASE}${m.file_url}`} target="_blank" rel="noreferrer">
+                <img src={`${MEDIA_BASE}${m.file_url}`} alt={m.file_name} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
               </a>
             ) : (
               <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, background: '#13131f' }}>
