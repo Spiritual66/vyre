@@ -199,7 +199,7 @@ module.exports = (io) => {
     const sender = db.prepare('SELECT username, avatar FROM users WHERE id = ?').get(req.user.id);
     const results = [];
 
-    const forwardTx = db.transaction(() => {
+    db.transact(() => {
       for (const chatId of chatIds) {
         const member = db.prepare('SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?').get(chatId, req.user.id);
         if (!member) continue;
@@ -217,7 +217,6 @@ module.exports = (io) => {
         results.push({ chatId, messageId: newId, now });
       }
     });
-    forwardTx();
 
     // Emit real-time events for each forwarded message
     for (const { chatId, messageId, now } of results) {

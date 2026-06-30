@@ -99,7 +99,7 @@ module.exports = (io) => {
         const now = Date.now();
 
         // Atomic: insert message + all statuses together
-        const sendTx = db.transaction(() => {
+        db.transact(() => {
           db.prepare(`INSERT INTO messages (id, chat_id, sender_id, content, type, file_url, file_name, file_size, reply_to, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
             .run(msgId, chatId, userId, content || null, type, fileUrl || null, fileName || null, fileSize || null, replyTo || null, now);
@@ -110,7 +110,6 @@ module.exports = (io) => {
             insertStatus.run(msgId, user_id, onlineUsers.has(user_id) ? 'delivered' : 'sent');
           });
         });
-        sendTx();
 
         const sender = db.prepare('SELECT username, avatar FROM users WHERE id = ?').get(userId);
         const replyMsg = replyTo ? db.prepare('SELECT id, content, type, sender_id, file_name FROM messages WHERE id = ?').get(replyTo) : null;

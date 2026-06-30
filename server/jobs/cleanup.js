@@ -36,7 +36,7 @@ function sweepDisappearingMessages(io) {
     const since = setAt || 0;
     const msgs = findMsgs.all(user_id, since, cutoff);
     if (!msgs.length) continue;
-    db.transaction(() => { for (const m of msgs) del.run(m.id); })();
+    db.transact(() => { for (const m of msgs) del.run(m.id); });
     for (const m of msgs) {
       unlinkUpload(m.file_url);
       if (io) io.to(`chat:${m.chat_id}`).emit('message:deleted', { messageId: m.id, chatId: m.chat_id });
@@ -54,9 +54,9 @@ function sweepExpiredStatuses() {
   const delViews = db.prepare('DELETE FROM status_views WHERE status_id = ?');
   const delReactions = db.prepare('DELETE FROM status_reactions WHERE status_id = ?');
   const delStatus = db.prepare('DELETE FROM statuses WHERE id = ?');
-  db.transaction(() => {
+  db.transact(() => {
     for (const s of expired) { delViews.run(s.id); delReactions.run(s.id); delStatus.run(s.id); }
-  })();
+  });
   for (const s of expired) unlinkUpload(s.file_url);
   return expired.length;
 }
@@ -77,11 +77,11 @@ function sweepScheduledMessages(io) {
     const ts = Date.now();
     const members = db.prepare('SELECT user_id FROM chat_members WHERE chat_id = ?').all(s.chat_id);
     const sender = db.prepare('SELECT username, avatar FROM users WHERE id = ?').get(s.sender_id);
-    db.transaction(() => {
+    db.transact(() => {
       insMsg.run(s.id, s.chat_id, s.sender_id, s.content, s.type, s.file_url, s.file_name, s.file_size, s.reply_to, ts);
       for (const m of members) if (m.user_id !== s.sender_id) insStatus.run(s.id, m.user_id, 'delivered');
       delSched.run(s.id);
-    })();
+    });
     const statuses = db.prepare('SELECT user_id, status FROM message_status WHERE message_id = ?').all(s.id);
     const message = {
       id: s.id, chat_id: s.chat_id, sender_id: s.sender_id, content: s.content, type: s.type,

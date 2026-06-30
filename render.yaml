@@ -3,12 +3,15 @@
 # Render builds server/Dockerfile and serves the API + built client on ONE
 # HTTPS URL (reachable from any device, independent of your PC).
 #
-# This is the FREE-tier config (no credit card). Trade-offs: the service sleeps
-# after ~15 min idle (first request then takes ~50s), and there's no persistent
-# disk, so accounts/messages reset on restart/redeploy.
+# This is the FREE-tier config (no credit card). The service still sleeps after
+# ~15 min idle (first request then takes ~50s), BUT data now persists for free:
+# set TURSO_DATABASE_URL + TURSO_AUTH_TOKEN below and the app stores everything
+# in a Turso (libSQL) cloud database instead of the container's ephemeral disk,
+# so accounts/messages survive restarts and redeploys.
 #
-# To keep data + stay always-on, change `plan: free` → `plan: starter` (~$7/mo)
-# and uncomment the `disk:` block and the DATA_DIR env var below.
+# (Alternative: a local SQLite file on a Render disk — change `plan: free` →
+# `plan: starter` (~$7/mo), uncomment the `disk:` block + DATA_DIR env var, and
+# leave the TURSO_* vars unset.)
 services:
   - type: web
     name: vyre
@@ -31,6 +34,11 @@ services:
       #   value: /data
       - key: JWT_SECRET
         generateValue: true      # Render generates a strong secret automatically
+      # --- Free persistent database (Turso / libSQL). Set both in the dashboard. ---
+      - key: TURSO_DATABASE_URL
+        sync: false              # e.g. libsql://your-db.turso.io
+      - key: TURSO_AUTH_TOKEN
+        sync: false              # the database auth token (eyJ...)
       - key: ALLOWED_ORIGINS
         sync: false              # optional; RENDER_EXTERNAL_URL is auto-allowed in code
       - key: GEMINI_API_KEY

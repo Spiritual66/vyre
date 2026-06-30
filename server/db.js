@@ -1,15 +1,36 @@
-const Database = require('better-sqlite3');
+const Database = require('libsql');
 const fs = require('fs');
 const path = require('path');
 const { DB_PATH } = require('./paths');
 
-// Ensure the data directory exists (it may be a freshly-mounted disk in prod).
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+// Persistence strategy:
+//   • If TURSO_DATABASE_URL is set, connect to the remote Turso (libSQL) cloud
+//     database so data survives restarts/redeploys even on ephemeral hosts
+//     (e.g. Render's free tier, which wipes the container filesystem).
+//   • Otherwise fall back to a local SQLite file (development / self-hosted disk).
+// libSQL is SQLite-compatible and exposes the same synchronous API as
+// better-sqlite3, so the rest of the codebase is unchanged.
+const TURSO_URL = process.env.TURSO_DATABASE_URL;
+let db;
+if (TURSO_URL) {
+  db = new Database(TURSO_URL, { authToken: process.env.TURSO_AUTH_TOKEN });
+  console.log('[db] connected to Turso remote database');
+} else {
+  // Ensure the data directory exists (it may be a freshly-mounted disk in prod).
+  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+  db = new Database(DB_PATH);
+  try { db.pragma('journal_mode = WAL'); } catch { /* not applicable to remote */ }
+  console.log('[db] using local SQLite file:', DB_PATH);
+}
+try { db.pragma('foreign_keys = ON'); } catch { /* remote libSQL may ignore */ }
 
-const db = new Database(DB_PATH);
-
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+// Atomic execution helper. libSQL's better-sqlite3-compatible `transaction()`
+// wrapper is unreliable over Turso's remote Hrana protocol (its BEGIN/COMMIT/
+// ROLLBACK can fail with "cannot rollback - no transaction is active"). On
+// remote we therefore run the function directly — each statement still commits
+// individually — while locally we keep real transactional atomicity.
+//   Usage: db.transact(() => { ...statements... })
+db.transact = TURSO_URL ? (fn) => fn() : (fn) => db.transaction(fn)();
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (

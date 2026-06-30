@@ -111,7 +111,7 @@ router.delete('/me', auth, async (req, res) => {
   const valid = await bcrypt.compare(password, row.password);
   if (!valid) return res.status(401).json({ error: 'Incorrect password' });
   const uid = req.user.id;
-  db.transaction(() => {
+  db.transact(() => {
     db.prepare("UPDATE messages SET type = 'deleted', content = NULL, file_url = NULL, file_name = NULL WHERE sender_id = ?").run(uid);
     db.prepare('DELETE FROM message_reactions WHERE user_id = ?').run(uid);
     db.prepare('DELETE FROM message_status WHERE user_id = ?').run(uid);
@@ -123,7 +123,7 @@ router.delete('/me', auth, async (req, res) => {
     db.prepare('DELETE FROM user_settings WHERE user_id = ?').run(uid);
     db.prepare('DELETE FROM chat_members WHERE user_id = ?').run(uid);
     db.prepare('DELETE FROM users WHERE id = ?').run(uid);
-  })();
+  });
   res.json({ success: true });
 });
 
