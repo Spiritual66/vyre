@@ -7,6 +7,7 @@ import ImageLightbox from './ImageLightbox';
 import AudioPlayer from './AudioPlayer';
 import LocationMessage from './LocationMessage';
 import ContactCard from './ContactCard';
+import LinkPreview from './LinkPreview';
 import { format, isToday, isYesterday } from 'date-fns';
 
 function formatBytes(b: number): string {
@@ -257,10 +258,14 @@ export default function MessageBubble({ message, prevMessage, isGroup, onReply, 
       );
     }
 
+    const firstUrl = (message.content || '').match(/https?:\/\/[^\s]+/)?.[0];
     return (
-      <p className="text-sm whitespace-pre-wrap break-words" style={{ color: 'var(--text-primary)' }}>
-        {searchTerm ? highlight(message.content || '', searchTerm) : linkify(message.content || '')}
-      </p>
+      <>
+        <p className="text-sm whitespace-pre-wrap break-words" style={{ color: 'var(--text-primary)' }}>
+          {searchTerm ? highlight(message.content || '', searchTerm) : linkify(message.content || '')}
+        </p>
+        {firstUrl && !searchTerm && <LinkPreview url={firstUrl} />}
+      </>
     );
   };
 
