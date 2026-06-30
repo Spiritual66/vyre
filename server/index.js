@@ -120,6 +120,7 @@ app.use('/api/statuses', require('./routes/status')(io));
 app.use('/api/calls', require('./routes/calls'));
 app.use('/api/ai', require('./routes/ai').router);
 app.use('/api/link-preview', require('./routes/linkPreview'));
+app.use('/api/push', require('./routes/push'));
 app.use('/api/admin', require('./routes/admin')(io));
 
 require('./socket/handlers')(io);

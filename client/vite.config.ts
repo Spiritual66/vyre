@@ -28,6 +28,7 @@ export default defineConfig({
       manifest: false, // use public/manifest.json directly
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        importScripts: ['push-sw.js'], // web-push handlers
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com/,

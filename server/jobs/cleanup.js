@@ -50,9 +50,10 @@ function sweepExpiredStatuses() {
   const expired = db.prepare('SELECT id, file_url FROM statuses WHERE expires_at < ?').all(now);
   if (!expired.length) return 0;
   const delViews = db.prepare('DELETE FROM status_views WHERE status_id = ?');
+  const delReactions = db.prepare('DELETE FROM status_reactions WHERE status_id = ?');
   const delStatus = db.prepare('DELETE FROM statuses WHERE id = ?');
   db.transaction(() => {
-    for (const s of expired) { delViews.run(s.id); delStatus.run(s.id); }
+    for (const s of expired) { delViews.run(s.id); delReactions.run(s.id); delStatus.run(s.id); }
   })();
   for (const s of expired) unlinkUpload(s.file_url);
   return expired.length;

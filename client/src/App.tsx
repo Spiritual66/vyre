@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { useAuth } from './contexts/AuthContext';
+import { enablePush } from './api/push';
 import { SocketProvider, useSocket } from './contexts/SocketContext';
 import { Chat, Message } from './types';
 import AuthScreen from './components/Auth/AuthScreen';
@@ -264,11 +265,11 @@ function AppContent() {
     document.title = total > 0 ? `(${total}) VYRE` : 'VYRE';
   }, [unreadCounts]);
 
+  // Once logged in, register for web-push (requests permission if needed, then
+  // subscribes this device so offline messages arrive as notifications).
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
+    if (user) enablePush();
+  }, [user?.id]);
 
   const loadChats = useCallback(async () => {
     try {

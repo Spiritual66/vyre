@@ -19,7 +19,8 @@
     "otplib": "^12.0.1",
     "qrcode": "^1.5.4",
     "socket.io": "^4.7.4",
-    "uuid": "^11.1.1"
+    "uuid": "^11.1.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

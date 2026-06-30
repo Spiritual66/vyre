@@ -92,6 +92,7 @@ module.exports = (io) => {
     if (!s) return res.status(404).json({ error: 'Not found' });
     if (s.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
     db.prepare('DELETE FROM status_views WHERE status_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM status_reactions WHERE status_id = ?').run(req.params.id);
     db.prepare('DELETE FROM statuses WHERE id = ?').run(req.params.id);
 
     // Notify contacts of deletion

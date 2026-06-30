@@ -9,6 +9,11 @@
 certs/
 *.pem
 
+# ── Android signing keys (NEVER commit) ─────────────────
+*.keystore
+*.jks
+keystore.properties
+
 # ── Dependencies ────────────────────────────────────────
 node_modules/
 

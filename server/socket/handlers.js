@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
+const { sendToUser: pushSendToUser } = require('../push');
 
 const activeCalls = new Map(); // callId -> { callerId, calleeId, type, status }
 
@@ -135,6 +136,18 @@ module.exports = (io) => {
         }
 
         io.to(`chat:${chatId}`).emit('message:new', message);
+
+        // Push-notify members who aren't currently connected.
+        const snippet = type === 'text' ? (content || '').slice(0, 140)
+          : type === 'image' ? '📷 Photo' : type === 'video' ? '🎥 Video'
+          : type === 'audio' ? '🎤 Voice message' : type === 'sticker' ? 'Sticker'
+          : type === 'location' ? '📍 Location' : '📎 Attachment';
+        for (const { user_id } of allMembers) {
+          if (user_id !== userId && !onlineUsers.has(user_id)) {
+            pushSendToUser(user_id, { title: sender.username, body: snippet, tag: `chat:${chatId}`, data: { url: '/' } }).catch(() => {});
+          }
+        }
+
         callback?.({ success: true, message });
       } catch (err) {
         callback?.({ error: err.message });
